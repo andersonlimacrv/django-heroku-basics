@@ -1,124 +1,202 @@
-# django-heroku
-Minimal configuration to host a Django project at Heroku
+# Hosting a Django Project on Heroku
 
-## Create the project directory
-* mkdir directory_name
-* cd directory_name
+This guide will walk you through the steps to host your Django project on Heroku while maintaining an organized and elegant structure.
 
-## Create and activate your virtuanenv
-* virtualenv -p python3 .vEnv
-* . .vEnv/bin/activate
+## Project Setup
 
-## Installing django
-* pip install django
+1. Create a New Project Directory
+    ```shell
+    mkdir directory_name
+    cd directory_name
+    ```
 
-## Create the django project
-* django-admin startproject myproject
+2. Set Up and Activate a Virtual Environment
+    ```shell
+    virtualenv -p python3 .vEnv
+    source .vEnv/bin/activate
+    ```
 
-## Creating the Git repository
-* git init 
-* Create a file called `.gitignore` with the following content:
+3. Install Django
+    ```shell
+    pip install django
+    ```
+
+4. Create the Django Project
+    ```shell
+    django-admin startproject myproject
+    ```
+
+## Git Setup
+
+1. Initialize Git Repository
+    ```shell
+    git init
+    ```
+
+2. Create a `.gitignore` file and add the following content:
+    ```
+    # IDE
+    .idea
+    # SQLite database
+    *.sqlite3
+    # Virtual environment
+    .vEnv
+    *pyc
+    ```
+
+3. Commit Initial Changes
+    ```shell
+    git add .
+    git commit -m 'First commit'
+    ```
+
+## Environment Configuration
+
+1. Install `python-decouple`
+    ```shell
+    pip install python-decouple
+    ```
+
+2. Create an `.env` file at the root and add the following variables:
+    ```
+    SECRET_KEY=Your$eCretKeyHere
+    DEBUG=True
+    ```
+
+3. In `settings.py`, use `decouple`:
+    ```python
+    from decouple import config
+
+    SECRET_KEY = config('SECRET_KEY')
+    DEBUG = config('DEBUG', default=False, cast=bool)
+    ```
+
+## Database Configuration
+
+1. Install `dj-database-url`
+    ```shell
+    pip install dj-database-url
+    ```
+
+2. Configure the Database in `settings.py`:
+    ```python
+    from dj_database_url import parse as dburl
+
+    default_dburl = 'sqlite:///' + os.path.join(BASE_DIR, 'db.sqlite3')
+
+    DATABASES = {
+        'default': config('DATABASE_URL', default=default_dburl, cast=dburl),
+    }
+    ```
+
+## Static Files
+
+1. Install `dj-static`
+    ```shell
+    pip install dj-static
+    ```
+
+2. In `wsgi.py`, add the following:
+    ```python
+    from dj_static import Cling
+    application = Cling(get_wsgi_application())
+    ```
+
+3. In `settings.py`, set `STATIC_ROOT`:
+    ```python
+    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+    ```
+
+## Requirements
+
+1. Create `requirements-dev.txt`
+    ```shell
+    pip freeze > requirements-dev.txt
+    ```
+
+2. Create `requirements.txt` and add references to previous files, plus two more requirements:
+    ```
+    -r requirements-dev.txt
+    gunicorn
+    psycopg2
+    ```
+
+## Procfile
+
+Create a `Procfile` with the following content:
 ```
-# See the name for you IDE
-.idea
-# If you are using sqlite3
-*.sqlite3
-# Name of your virtuan env
-.vEnv
-*pyc
+web: gunicorn project.wsgi
 ```
-* git add .
-* git commit -m 'First commit'
+For more details, refer to:
+[Django Gunicorn Deployment](https://docs.djangoproject.com/en/2.2/howto/deployment/wsgi/gunicorn/)
+[Heroku Django Configuration](https://devcenter.heroku.com/articles/django-app-configuration)
 
-## Hidding instance configuration
-* pip install python-decouple
-* create an .env file at the root path and insert the following variables
-- SECRET_KEY=Your$eCretKeyHere (Get this secrety key from the settings.py)
-- DEBUG=True
+## Runtime Configuration
 
-### Settings.py
-* from decouple import config
-* SECRET_KEY = config('SECRET_KEY')
-* DEBUG = config('DEBUG', default=False, cast=bool)
+Create a `runtime.txt` file and specify the Python version:
+```
+python-3.7.3
+```
 
-## Configuring the Data Base (You don't need that if you already had an database).
-* pip install dj-database-url
+## Heroku Deployment
 
-### Settings.py
-* from dj_database_url import parse as dburl
+1. Install Heroku CLI Tools (if not already installed)
+   [Heroku CLI Installation Guide](http://bit.ly/2jCgJYW)
 
-default_dburl = 'sqlite:///' + os.path.join(BASE_DIR, 'db.sqlite3')
+2. Create the Heroku App
+    ```shell
+    heroku apps:create app-name
+    ```
+    You can also create the app through the Heroku dashboard.
 
-DATABASES = {
-    'default': config('DATABASE_URL', default=default_dburl, cast=dburl),
-}
+3. Set Allowed Hosts
+    Add your app's domain to the `ALLOWED_HOSTS` directive in `settings.py`.
 
+4. Install Heroku Config Plugin
+    ```shell
+    heroku plugins:install heroku-config
+    ```
 
-## Static files 
-pip install dj-static
+5. Push Environment Configurations to Heroku
+    ```shell
+    heroku config:push -a
+    ```
 
-### wsgi 
-* from dj_static import Cling
-* application = Cling(get_wsgi_application())
-* Also don't forget to check "DJANGO_SETTINGS_MODULE". It is prone to frequent mistakes.
+6. Deploy the App
+    ```shell
+    git add .
+    git commit -m 'Configuring the app'
+    git push heroku master
+    ```
 
-### Settings.py
-* STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+7. Database Migration
+    ```shell
+    heroku run python3 manage.py migrate
+    ```
 
-## Create a requirements-dev.txt
-pip freeze > requirements-dev.txt
+8. Create Django Admin User
+    ```shell
+    heroku run python3 manage.py createsuperuser
+    ```
 
-## Create a file requirements.txt file and include reference to previows file and add two more requirements
-* -r requirements-dev.txt
-* gunicorn
-* psycopg2
+## Extras
 
-## Create a file Procfile and add the following code
-* web: gunicorn project.wsgi
-* You can check in django website or heroku website for more information:
-https://docs.djangoproject.com/en/2.2/howto/deployment/wsgi/gunicorn/
-https://devcenter.heroku.com/articles/django-app-configuration
+- Disable Collectstatic (if needed)
+    ```shell
+    heroku config:set DISABLE_COLLECTSTATIC=1
+    ```
 
-## Create a file runtime.txt and add the following core
-* python-3.6.0 (You can currently use "python-3.7.3")
+- Adjust Web Concurrency
+    ```python
+    WEB_CONCURRENCY = 3
+    ```
 
-## Creating the app at Heroku
-You should install heroku CLI tools in your computer previously ( See http://bit.ly/2jCgJYW ) 
-* heroku apps:create app-name (you can create by heroku it's self if you wanted.)
-You can also login in heroku by: heroku login
-Remember to grab the address of the app in this point
+- Change Specific Configuration
+    ```shell
+    heroku config:set DEBUG=True
+    ```
+Refer to the Django and Heroku documentation for further details:
 
-## Setting the allowed hosts
-* include your address at the ALLOWED_HOSTS directives in settings.py - Just the domain, make sure that you will take the protocol and slashes from the string
-
-## Heroku install config plugin
-* heroku plugins:install heroku-config
-
-### Sending configs from .env to Heroku ( You have to be inside tha folther where .env files is)
-* heroku plugins:install heroku-config
-* heroku config:push -a
-
-### To show heroku configs do
-* heroku config 
-(check this, if you fail changing by code, try changing by heroku dashboard)
-
-## Publishing the app
-* git add .
-* git commit -m 'Configuring the app'
-* git push heroku master --force (you don't need "--force")
-
-## Creating the data base (if you are using your own data base you don't need it, if was migrated there)
-* heroku run python3 manage.py migrate
-
-## Creating the Django admin user
-* heroku run python3 manage.py createsuperuser (the same as above)
-
-## EXTRAS
-### You may need to disable the collectstatic
-* heroku config:set DISABLE_COLLECTSTATIC=1
-
-### Also recommend set this configuration to your heroku settings
-* WEB_CONCURRENCY = 3
-
-### Changing a specific configuration
-* heroku config:set DEBUG=True
+Refer to the Django and Heroku documentation for further details:
+- [Django Deployment with Gunicorn](https://docs.djangoproject.com/en/3.2/howto/deployment/wsgi/gunicorn/)
+- [Heroku Django App Configuration](https://devcenter.heroku.com/articles/django-app-configuration)
